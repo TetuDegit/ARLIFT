@@ -87,9 +87,24 @@ CUDA_VISIBLE_DEVICES=0,1 torchrun --standalone --nproc-per-node=2 minimax_h3_ref
 
 MiniMax applies spatial guidance in the first four of eight steps. Its noise schedule and guidance weights are in [the MiniMax configuration](minimax_h3_ref2va/inference.yaml).
 
-## Prompts, weights, and outputs
+## Writing prompts
 
-- Use `--prompt "a description of your scene"` or `--prompt-file path/to/prompt.txt`. Each invocation generates one clip. All three default configurations use seed `610009`. Override it with `--seed`.
+Describe a single shot with one main action that fits the clip. ARLIFT uses the low-resolution draft to guide the high-resolution pass, so make the subject, action, and camera behavior explicit.
+
+1. **Scene and subject.** Name the main subject, its setting, and the objects that matter in the frame.
+2. **Action.** Describe what moves, how it moves, and which parts of the scene stay still.
+3. **Camera and appearance.** Specify the framing, whether the camera is fixed or moving, and a few visible details such as lighting or materials.
+
+The [bundled example](examples/prompt.txt) is the first prompt in the 24-prompt evaluation set used for Krea and LongLive:
+
+> A woman sits beside a sunlit window in a modest living room with a sofa, a wooden table, and a leafy plant. She slowly turns her head toward the window while keeping her hands relaxed in her lap. The camera remains fixed in a medium shot, showing natural skin, cotton fabric, warm wood, and clear daylight in one continuous take.
+
+Use `--prompt-file path/to/prompt.txt` for a UTF-8 text file containing one prompt, or pass text directly with `--prompt`. Text-to-video runs use the bundled example when neither option is given. The three configurations default to seed `610009`, which you can override with `--seed`. To compare two prompt versions, keep the backbone, generation settings, and seed fixed.
+
+With this example, the default settings, and the two-H100 setup above, the published inference code reproduced the Krea and LongLive evaluation MP4s byte for byte. MiniMax also generated the example successfully from text.
+
+## Weights and outputs
+
 - Checkpoints go under `weights/<backbone>/` by default. To use another disk, pass the same `--weights-dir /path/to/weights` to the download and generation commands. Model sources, revisions, and required files are in the [weight manifest](arlift/weights.json).
 - Use `--list` with the download command to inspect sources before downloading. Use `--describe` on a generation command to validate and print its resolved configuration, or `--check-weights` to verify that the files and indexed shards exist. These checks run on CPU. For a refinement-only MiniMax installation, use `--check-weights` with `--draft /path/to/draft.mp4` and its matching prompt.
 - `--output` selects the MP4 path. Existing files are protected. With `--config` you can pass a copy of a model's YAML. The dimensions, block lengths and schedules shipped here correspond to the paper settings.
